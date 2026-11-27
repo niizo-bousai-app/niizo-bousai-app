@@ -101,18 +101,18 @@ const DIAGNOSIS_TYPES = [
 // condition を省略したアイテムはすべての家庭に表示されます。
 // special は優先アイテムとして目立つラベルを付けます。
 const SUPPLY_ITEMS = [
-  { name: "飲料水", icon: "water_drop", amount: "上の必要量を目安に", special: true },
-  { name: "非常食・保存食", icon: "lunch_dining", amount: "家族の好みに合うもの", special: true },
-  { name: "携帯トイレ・簡易トイレ", icon: "wc", amount: "1人1日5回を目安に", condition: (a) => a[3] === "apartment", special: true },
-  { name: "携帯トイレ", icon: "wc", amount: "家族人数×3日分", condition: (a) => a[3] !== "apartment", special: true },
-  { name: "常備薬・お薬手帳", icon: "medication", amount: "いつもの薬・処方内容", condition: (a) => a[4] === "yes", special: true },
-  { name: "ケア用品・使い慣れた日用品", icon: "health_and_safety", amount: "必要な方に合わせて", condition: (a) => a[4] === "yes" },
-  { name: "ペットフード・飲み水", icon: "pets", amount: "最低5〜7日分", condition: (a) => a[2] === "yes", special: true },
-  { name: "ペットシーツ・トイレ用品", icon: "crib", amount: "使い慣れたもの", condition: (a) => a[2] === "yes" },
-  { name: "懐中電灯・予備電池", icon: "flashlight_on", amount: "家族が使える場所に" },
-  { name: "モバイルバッテリー", icon: "battery_charging_full", amount: "充電・動作も確認" },
-  { name: "ウェットティッシュ・衛生用品", icon: "sanitizer", amount: "家族分を用意" },
-  { name: "現金・身分証のコピー", icon: "payments", amount: "小銭もあると安心" },
+  { name: "飲料水", icon: "water_drop", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}L（1人1日3L×${DAYS_OF_SUPPLIES}日分）`, special: true },
+  { name: "非常食・保存食", icon: "lunch_dining", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食（1人1日3食×${DAYS_OF_SUPPLIES}日分）`, special: true },
+  { name: "携帯トイレ・簡易トイレ", icon: "wc", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, condition: (a) => a[3] === "apartment", special: true },
+  { name: "携帯トイレ", icon: "wc", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, condition: (a) => a[3] !== "apartment", special: true },
+  { name: "常備薬・お薬手帳", icon: "medication", amount: "必要な方の処方薬を最低7日分", condition: (a) => a[4] === "yes", special: true },
+  { name: "ケア用品・使い慣れた日用品", icon: "health_and_safety", amount: "必要な方ごとに7日分", condition: (a) => a[4] === "yes" },
+  { name: "ペットフード・飲み水", icon: "pets", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
+  { name: "ペットシーツ・トイレ用品", icon: "crib", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes" },
+  { name: "懐中電灯・予備電池", icon: "flashlight_on", amount: "懐中電灯2個・予備電池1セット" },
+  { name: "モバイルバッテリー", icon: "battery_charging_full", amount: (size) => `${size}台（1人1台）` },
+  { name: "ウェットティッシュ・衛生用品", icon: "sanitizer", amount: (size) => `${size}パック（1人1パック）` },
+  { name: "現金・身分証のコピー", icon: "payments", amount: (size) => `現金${size * 3000}円程度・身分証コピー${size}人分` },
 ];
 
 // 1〜2人は2人分、3〜4人は4人分、5人以上は最低5人分で計算します。
@@ -208,12 +208,12 @@ function renderResult() {
         <div class="need-quantity">
           <span class="need-label">飲料水</span>
           <strong class="need-value">${waterLitres} L</strong>
-          <div class="need-caption">${householdSize}人 × 1日3L × 3日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
+          <div class="need-caption">${householdSize}人 × 1日3L × ${DAYS_OF_SUPPLIES}日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
         </div>
         <div class="need-quantity">
           <span class="need-label">食料</span>
           <strong class="need-value">${mealCount}食分以上</strong>
-          <div class="need-caption">${householdSize}人 × 1日3食 × 3日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
+          <div class="need-caption">${householdSize}人 × 1日3食 × ${DAYS_OF_SUPPLIES}日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
         </div>
       </section>
       <section class="result-card" aria-labelledby="advice-title">
@@ -233,14 +233,14 @@ function renderResult() {
           <span class="card-heading-icon material-symbols-outlined" aria-hidden="true">checklist</span>
           <h2 id="checklist-title">わが家の必要備蓄チェックリスト</h2>
         </div>
-        <p class="checklist-intro">準備できているものにチェック。タップすると完了です。</p>
+        <p class="checklist-intro">準備できているものにチェック。数量は人数選択に応じた目安です（5人以上は5人分で計算）。</p>
         <div class="checklist">
           ${displayedItems.map((item, index) => `
             <label class="supply-item">
               <input type="checkbox" aria-label="${item.name}を準備できている">
               <span class="check-visual"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
               <span class="material-symbols-outlined supply-icon" aria-hidden="true">${item.icon}</span>
-              <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${item.amount}</span></span>
+              <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${typeof item.amount === "function" ? item.amount(householdSize) : item.amount}</span></span>
               ${item.special ? '<span class="priority-tag">優先</span>' : ""}
             </label>
           `).join("")}
@@ -248,53 +248,84 @@ function renderResult() {
       </section>
     </div>
     <div class="result-actions">
-      <button id="copy-button" class="button button-large" type="button"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>結果をコピーして家族に送る</button>
+      <button id="share-button" class="button button-large" type="button"><span class="material-symbols-outlined" aria-hidden="true">share</span>結果を共有する</button>
       <button id="restart-button" class="button button-secondary" type="button"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>もう一度診断する</button>
     </div>
-    <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+    <p id="share-status" class="copy-status" role="status" aria-live="polite"></p>
   `;
-  document.querySelector("#copy-button").addEventListener("click", copyResult);
+  document.querySelector("#share-button").addEventListener("click", shareResult);
   document.querySelector("#restart-button").addEventListener("click", restart);
 }
 
-function getShareText() {
+function getShareText(includeUrl = false) {
   const diagnosis = getDiagnosis();
   const householdSize = HOUSEHOLD_SIZE[answers[1]];
   const checklist = [...resultContent.querySelectorAll(".supply-item")].map((item) => {
     const name = item.querySelector(".supply-name").textContent;
-    return `${item.querySelector("input").checked ? "☑" : "☐"} ${name}`;
+    const amount = item.querySelector(".supply-amount").textContent;
+    return `${item.querySelector("input").checked ? "☑" : "☐"} ${name}：${amount}`;
   });
   return [
     "【わが家の備蓄点検】",
     `${diagnosis.name}（${diagnosis.type}タイプ）`,
-    `水：${householdSize * 9}L以上（1人1日3L×3日分）`,
-    `食料：${householdSize * 9}食分以上（1人1日3食×3日分）`,
+    `水：${householdSize * 3 * DAYS_OF_SUPPLIES}L以上（1人1日3L×${DAYS_OF_SUPPLIES}日分）`,
+    `食料：${householdSize * 3 * DAYS_OF_SUPPLIES}食分以上（1人1日3食×${DAYS_OF_SUPPLIES}日分）`,
     answers[1] === "5+" ? "※5人以上の最低目安。実際の人数分を用意しましょう。" : "",
     "",
     "備蓄チェックリスト：",
     ...checklist,
     "",
     diagnosis.advice,
+    includeUrl ? `\nアプリ：${location.href}` : "",
   ].filter(Boolean).join("\n");
 }
 
-async function copyResult() {
-  const status = document.querySelector("#copy-status");
+async function copyResult(status, text, shareFallback = false) {
+  let copied = false;
   try {
-    await navigator.clipboard.writeText(getShareText());
-    status.textContent = "結果をコピーしました。家族に送って共有しましょう！";
+    await navigator.clipboard.writeText(text);
+    copied = true;
   } catch {
-    const textArea = document.createElement("textarea");
-    textArea.value = getShareText();
-    textArea.setAttribute("readonly", "");
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.select();
-    const copied = document.execCommand("copy");
-    textArea.remove();
-    status.textContent = copied ? "結果をコピーしました。家族に送って共有しましょう！" : "コピーできませんでした。もう一度お試しください。";
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.setAttribute("readonly", "");
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      try {
+        textArea.select();
+        copied = document.execCommand("copy");
+      } finally {
+        textArea.remove();
+      }
+    } catch {
+      copied = false;
+    }
   }
+  status.textContent = copied
+    ? "結果をコピーしました。家族に送って共有しましょう！"
+    : shareFallback
+      ? "共有・コピーができませんでした。ブラウザーの設定をご確認ください。"
+      : "コピーできませんでした。もう一度お試しください。";
+}
+
+async function shareResult() {
+  const status = document.querySelector("#share-status");
+  const shareText = getShareText();
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({ title: "わが家の備蓄点検", text: shareText, url: location.href });
+      status.textContent = "結果を共有しました。";
+      return;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        status.textContent = "共有をキャンセルしました。";
+        return;
+      }
+    }
+  }
+  await copyResult(status, getShareText(true), true);
 }
 
 function restart() {
