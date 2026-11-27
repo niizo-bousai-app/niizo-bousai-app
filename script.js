@@ -265,8 +265,12 @@ function renderResult() {
           <h2 id="checklist-title">わが家の必要備蓄チェックリスト</h2>
         </div>
         <p class="checklist-intro">準備できているものにチェック。数量は目安です。持病・季節・地域に合わせて調整してください。</p>
+        <div class="checklist-progress">
+          <div class="checklist-progress-label"><span>準備の進み具合</span><strong id="checklist-progress-text">0 / ${displayedItems.length} 項目</strong></div>
+          <div id="checklist-progress-bar" class="checklist-progress-track" role="progressbar" aria-label="備蓄品の準備状況" aria-valuemin="0" aria-valuemax="${displayedItems.length}" aria-valuenow="0"><span></span></div>
+        </div>
         <div class="checklist">
-          ${displayedItems.map((item, index) => `
+          ${displayedItems.map((item) => `
             <label class="supply-item">
               <input type="checkbox" aria-label="${item.name}を準備できている">
               <span class="check-visual"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
@@ -279,23 +283,37 @@ function renderResult() {
       </section>
     </div>
     <div class="result-actions">
-      <button id="share-button" class="button button-large" type="button"><span class="material-symbols-outlined" aria-hidden="true">share</span>結果を共有する</button>
+      <button id="image-share-button" class="button button-large" type="button"><span class="material-symbols-outlined" aria-hidden="true">image</span>結果画像をシェア</button>
+      <button id="image-download-button" class="button button-secondary" type="button"><span class="material-symbols-outlined" aria-hidden="true">download</span>画像を保存</button>
+      <button id="text-share-button" class="button button-secondary" type="button"><span class="material-symbols-outlined" aria-hidden="true">share</span>テキストで共有</button>
       <button id="restart-button" class="button button-secondary" type="button"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>もう一度診断する</button>
     </div>
     <p id="share-status" class="copy-status" role="status" aria-live="polite"></p>
   `;
-  document.querySelector("#share-button").addEventListener("click", shareResult);
+  resultContent.querySelectorAll('.supply-item input').forEach((input) => {
+    input.addEventListener("change", updateChecklistProgress);
+  });
+  updateChecklistProgress();
+  document.querySelector("#image-share-button").addEventListener("click", shareImageResult);
+  document.querySelector("#image-download-button").addEventListener("click", downloadResultImage);
+  document.querySelector("#text-share-button").addEventListener("click", shareTextResult);
   document.querySelector("#restart-button").addEventListener("click", restart);
+}
+
+function updateChecklistProgress() {
+  const checkboxes = [...resultContent.querySelectorAll(".supply-item input")];
+  const checkedCount = checkboxes.filter((input) => input.checked).length;
+  const progressBar = resultContent.querySelector("#checklist-progress-bar");
+  resultContent.querySelector("#checklist-progress-text").textContent = `${checkedCount} / ${checkboxes.length} 項目`;
+  progressBar.setAttribute("aria-valuenow", String(checkedCount));
+  progressBar.querySelector("span").style.width = `${checkboxes.length ? (checkedCount / checkboxes.length) * 100 : 0}%`;
 }
 
 function getShareText(includeUrl = false) {
   const diagnosis = getDiagnosis();
   const householdSize = answers[1];
-  const checklist = [...resultContent.querySelectorAll(".supply-item")].map((item) => {
-    const name = item.querySelector(".supply-name").textContent;
-    const amount = item.querySelector(".supply-amount").textContent;
-    return `${item.querySelector("input").checked ? "☑" : "☐"} ${name}：${amount}`;
-  });
+  const checklist = getChecklistItems().map((item) =>
+    `${item.checked ? "☑" : "☐"} ${item.name}：${item.amount}`);
   return [
     "【わが家の備蓄点検】",
     `${diagnosis.name}（${diagnosis.type}タイプ）`,
@@ -340,7 +358,282 @@ async function copyResult(status, text, shareFallback = false) {
       : "コピーできませんでした。もう一度お試しください。";
 }
 
-async function shareResult() {
+function getChecklistItems() {
+  return [...resultContent.querySelectorAll(".supply-item")].map((item) => ({
+    name: item.querySelector(".supply-name").textContent,
+    amount: item.querySelector(".supply-amount").textContent,
+    checked: item.querySelector("input").checked,
+    special: Boolean(item.querySelector(".priority-tag")),
+  }));
+}
+
+function roundedRect(context, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.arcTo(x + width, y, x + width, y + height, r);
+  context.arcTo(x + width, y + height, x, y + height, r);
+  context.arcTo(x, y + height, x, y, r);
+  context.arcTo(x, y, x + width, y, r);
+  context.closePath();
+}
+
+function drawWrappedText(context, text, x, y, maxWidth, lineHeight, maxLines = 3) {
+  const lines = [];
+  let line = "";
+  for (const character of Array.from(text)) {
+    const candidate = line + character;
+    if (line && context.measureText(candidate).width > maxWidth) {
+      lines.push(line);
+      line = character;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  const visibleLines = lines.slice(0, maxLines);
+  if (lines.length > maxLines) {
+    let lastLine = visibleLines[maxLines - 1];
+    while (lastLine && context.measureText(`${lastLine}…`).width > maxWidth) {
+      lastLine = Array.from(lastLine).slice(0, -1).join("");
+    }
+    visibleLines[maxLines - 1] = `${lastLine}…`;
+  }
+  visibleLines.forEach((textLine, index) => context.fillText(textLine, x, y + index * lineHeight));
+  return y + visibleLines.length * lineHeight;
+}
+
+async function createResultImage() {
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+
+  const diagnosis = getDiagnosis();
+  const householdSize = answers[1];
+  const items = getChecklistItems();
+  const checkedCount = items.filter((item) => item.checked).length;
+  const columns = 2;
+  const rows = Math.ceil(items.length / columns);
+  const width = 1080;
+  const padding = 64;
+  const rowHeight = 126;
+  const checklistTop = 700;
+  const adviceTop = checklistTop + rows * rowHeight + 30;
+  const height = adviceTop + 300;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("画像を作成できませんでした。");
+
+  context.fillStyle = "#f3f8f5";
+  context.fillRect(0, 0, width, height);
+  const headerGradient = context.createLinearGradient(0, 0, width, 330);
+  headerGradient.addColorStop(0, "#00554d");
+  headerGradient.addColorStop(1, "#168c78");
+  context.fillStyle = headerGradient;
+  context.fillRect(0, 0, width, 330);
+  context.fillStyle = "rgba(255,255,255,.07)";
+  context.beginPath();
+  context.arc(970, 32, 190, 0, Math.PI * 2);
+  context.fill();
+  context.beginPath();
+  context.arc(880, 310, 115, 0, Math.PI * 2);
+  context.fill();
+
+  context.textBaseline = "top";
+  context.fillStyle = "#b8eee0";
+  context.font = '700 22px "Noto Sans JP", sans-serif';
+  context.fillText("にいぞ防災  |  わが家の備蓄点検", padding, 54);
+  context.fillStyle = "#ffffff";
+  context.font = '800 48px "Noto Sans JP", sans-serif';
+  context.fillText("わが家の備蓄プラン", padding, 112);
+  context.fillStyle = "#e0f4ee";
+  context.font = '500 25px "Noto Sans JP", sans-serif';
+  context.fillText(`${householdSize}人家族  ・  ${diagnosis.name}`, padding, 185);
+  context.font = '400 20px "Noto Sans JP", sans-serif';
+  drawWrappedText(context, diagnosis.message, padding, 235, 810, 31, 2);
+  roundedRect(context, 914, 109, 102, 102, 28);
+  context.fillStyle = "rgba(255,255,255,.16)";
+  context.fill();
+  context.fillStyle = "#ffffff";
+  context.textAlign = "center";
+  context.font = '800 54px "Plus Jakarta Sans", sans-serif';
+  context.fillText(diagnosis.type, 965, 123);
+  context.font = '700 15px "Noto Sans JP", sans-serif';
+  context.fillText("タイプ", 965, 183);
+  context.textAlign = "left";
+
+  roundedRect(context, padding, 365, width - padding * 2, 230, 28);
+  context.fillStyle = "#ffffff";
+  context.fill();
+  context.fillStyle = "#647773";
+  context.font = '700 20px "Noto Sans JP", sans-serif';
+  context.fillText(`${DAYS_OF_SUPPLIES}日分の備蓄目安`, padding + 34, 394);
+  context.strokeStyle = "#e3ece7";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(width / 2, 438);
+  context.lineTo(width / 2, 560);
+  context.stroke();
+  const stats = [
+    { x: padding + 34, label: "飲料水", value: `${householdSize * 3 * DAYS_OF_SUPPLIES} L`, detail: "1人1日3Lを目安" },
+    { x: width / 2 + 34, label: "食料", value: `${householdSize * 3 * DAYS_OF_SUPPLIES} 食以上`, detail: "1人1日3食を目安" },
+  ];
+  for (const stat of stats) {
+    context.fillStyle = "#647773";
+    context.font = '600 19px "Noto Sans JP", sans-serif';
+    context.fillText(stat.label, stat.x, 449);
+    context.fillStyle = "#75420f";
+    context.font = '800 39px "Noto Sans JP", sans-serif';
+    context.fillText(stat.value, stat.x, 481);
+    context.fillStyle = "#806b52";
+    context.font = '400 16px "Noto Sans JP", sans-serif';
+    context.fillText(stat.detail, stat.x, 536);
+  }
+
+  context.fillStyle = "#172d2a";
+  context.font = '800 27px "Noto Sans JP", sans-serif';
+  context.fillText("備蓄チェックリスト", padding, 632);
+  context.textAlign = "right";
+  context.fillStyle = "#006a60";
+  context.font = '700 18px "Noto Sans JP", sans-serif';
+  context.fillText(`${checkedCount} / ${items.length} 項目を準備済み`, width - padding, 638);
+  context.textAlign = "left";
+  roundedRect(context, padding, 674, width - padding * 2, 8, 4);
+  context.fillStyle = "#dce7e2";
+  context.fill();
+  if (checkedCount) {
+    roundedRect(context, padding, 674, (width - padding * 2) * (checkedCount / items.length), 8, 4);
+    context.fillStyle = "#168c78";
+    context.fill();
+  }
+
+  const gap = 16;
+  const cardWidth = (width - padding * 2 - gap) / 2;
+  items.forEach((item, index) => {
+    const column = Math.floor(index / rows);
+    const row = index % rows;
+    const x = padding + column * (cardWidth + gap);
+    const y = checklistTop + row * rowHeight;
+    roundedRect(context, x, y, cardWidth, 110, 18);
+    context.fillStyle = item.checked ? "#e8f6ef" : "#ffffff";
+    context.fill();
+    context.strokeStyle = item.checked ? "#b6dfd1" : "#dce7e2";
+    context.lineWidth = 2;
+    context.stroke();
+    roundedRect(context, x + 17, y + 20, 28, 28, 8);
+    context.fillStyle = item.checked ? "#006a60" : "#ffffff";
+    context.fill();
+    context.strokeStyle = item.checked ? "#006a60" : "#b5c8c0";
+    context.stroke();
+    if (item.checked) {
+      context.strokeStyle = "#ffffff";
+      context.lineWidth = 3;
+      context.beginPath();
+      context.moveTo(x + 24, y + 34);
+      context.lineTo(x + 29, y + 39);
+      context.lineTo(x + 39, y + 27);
+      context.stroke();
+    }
+    context.textAlign = "right";
+    context.fillStyle = item.special ? "#a55318" : "#647773";
+    context.font = '700 13px "Noto Sans JP", sans-serif';
+    if (item.special) context.fillText("優先", x + cardWidth - 16, y + 18);
+    context.textAlign = "left";
+    context.fillStyle = item.checked ? "#647773" : "#172d2a";
+    context.font = '700 17px "Noto Sans JP", sans-serif';
+    drawWrappedText(context, item.name, x + 56, y + 20, cardWidth - 78, 23, 2);
+    context.fillStyle = "#647773";
+    context.font = '400 14px "Noto Sans JP", sans-serif';
+    drawWrappedText(context, item.amount, x + 56, y + 68, cardWidth - 74, 19, 2);
+  });
+
+  roundedRect(context, padding, adviceTop, width - padding * 2, 116, 22);
+  context.fillStyle = "#e2f2eb";
+  context.fill();
+  context.fillStyle = "#006a60";
+  context.font = '800 18px "Noto Sans JP", sans-serif';
+  context.fillText("わが家へのアドバイス", padding + 24, adviceTop + 19);
+  context.fillStyle = "#435b55";
+  context.font = '500 16px "Noto Sans JP", sans-serif';
+  drawWrappedText(context, diagnosis.advice, padding + 24, adviceTop + 51, width - padding * 2 - 48, 24, 2);
+
+  context.fillStyle = "#647773";
+  context.font = '400 14px "Noto Sans JP", sans-serif';
+  context.fillText("数量は目安です。持病・季節・地域に合わせて調整してください。", padding, adviceTop + 143);
+  context.fillStyle = "#006a60";
+  context.font = '600 14px "Noto Sans JP", sans-serif';
+  drawWrappedText(context, location.href, padding, adviceTop + 173, width - padding * 2, 20, 2);
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) resolve(result);
+      else reject(new Error("画像データを作成できませんでした。"));
+    }, "image/png");
+  });
+  return blob;
+}
+
+function downloadBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "wagaya-bichiku-plan.png";
+  document.body.appendChild(link);
+  try {
+    link.click();
+  } finally {
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+}
+
+async function downloadResultImage() {
+  const status = document.querySelector("#share-status");
+  status.textContent = "結果画像を作成しています…";
+  try {
+    downloadBlob(await createResultImage());
+    status.textContent = "結果画像を保存しました。";
+  } catch {
+    status.textContent = "画像を作成できませんでした。もう一度お試しください。";
+  }
+}
+
+async function shareImageResult() {
+  const status = document.querySelector("#share-status");
+  let blob;
+  status.textContent = "結果画像を作成しています…";
+  try {
+    blob = await createResultImage();
+    if (typeof File === "function" && typeof navigator.share === "function") {
+      const file = new File([blob], "wagaya-bichiku-plan.png", { type: "image/png" });
+      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "わが家の備蓄点検", text: "わが家の備蓄点検結果です。" });
+        status.textContent = "結果画像を共有しました。";
+        return;
+      }
+    }
+    downloadBlob(blob);
+    status.textContent = "この端末は画像共有に対応していないため、画像を保存しました。保存した画像を共有してください。";
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      status.textContent = "画像の共有をキャンセルしました。";
+      return;
+    }
+    if (blob) {
+      try {
+        downloadBlob(blob);
+        status.textContent = "画像共有に失敗したため、結果画像を保存しました。";
+        return;
+      } catch {
+        status.textContent = "画像を共有・保存できませんでした。もう一度お試しください。";
+        return;
+      }
+    }
+    status.textContent = "画像を作成できませんでした。もう一度お試しください。";
+  }
+}
+
+async function shareTextResult() {
   const status = document.querySelector("#share-status");
   const shareText = getShareText();
   if (typeof navigator.share === "function") {
