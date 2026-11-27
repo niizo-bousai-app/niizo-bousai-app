@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5faf8">
+    <meta name="description" content="家族に合った備蓄品を1分で点検できる、防災備蓄チェックアプリです。">
+    <title>わが家の備蓄点検 | にいぞ防災</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="にいぞ防災 ホーム">
+        <span class="brand-mark material-symbols-outlined" aria-hidden="true">shield_with_heart</span>
+        <span>にいぞ防災</span>
+      </a>
+      <span class="topbar-note"><span class="status-dot"></span>家族のための防災準備</span>
+    </header>
+
+    <main id="app" class="app-shell">
+      <section id="welcome-screen" class="screen welcome-screen" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <div class="eyebrow"><span class="material-symbols-outlined" aria-hidden="true">home</span>HOME SAFETY CHECK</div>
+          <h1 id="welcome-title">1分でできる！<br>わが家の備蓄点検アプリ</h1>
+          <p class="welcome-description">学校の備蓄は1日分だけ。<br>おうちの備蓄を家族と一緒にチェックしよう！</p>
+          <button id="start-button" class="button button-primary button-large" type="button">
+            点検をスタートする
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+          </button>
+          <div class="privacy-note"><span class="material-symbols-outlined" aria-hidden="true">lock</span>回答はこの端末内だけで使われます</div>
+        </div>
+        <div class="welcome-art" aria-hidden="true">
+          <div class="art-glow"></div>
+          <div class="art-card art-card-back"><span class="material-symbols-outlined">water_drop</span></div>
+          <div class="art-card art-card-front">
+            <div class="art-card-top"><span>わが家の備え</span><span class="material-symbols-outlined">verified</span></div>
+            <div class="art-bag"><span class="material-symbols-outlined">backpack</span></div>
+            <div class="art-card-footer"><span>もしもの時も、安心を。</span><span class="art-sparkle">✳</span></div>
+          </div>
+          <span class="art-float art-float-one material-symbols-outlined">medical_services</span>
+          <span class="art-float art-float-two material-symbols-outlined">check_circle</span>
+          <div class="art-caption">小さな準備が<br>大きな安心に。</div>
+        </div>
+      </section>
+
+      <section id="question-screen" class="screen question-screen" aria-labelledby="question-title" hidden>
+        <div class="question-header">
+          <button id="back-button" class="icon-button" type="button" aria-label="前の質問に戻る">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+          </button>
+          <div class="progress-area">
+            <div class="progress-label"><span id="step-label">QUESTION 1 / 5</span><span id="progress-percent">20%</span></div>
+            <div class="progress-track" role="progressbar" aria-label="質問の進捗" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1">
+              <span id="progress-fill"></span>
+            </div>
+          </div>
+          <span class="header-spacer" aria-hidden="true"></span>
+        </div>
+        <div id="question-content" class="question-content" aria-live="polite"></div>
+      </section>
+
+      <section id="result-screen" class="screen result-screen" aria-labelledby="result-title" hidden>
+        <div id="result-content" aria-live="polite"></div>
+      </section>
+    </main>
+    <footer class="site-footer">もしもの時に、いつもの安心を。</footer>
+  </body>
+</html>
