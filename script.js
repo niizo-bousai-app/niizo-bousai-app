@@ -275,7 +275,7 @@ function renderResult() {
               <input type="checkbox" aria-label="${item.name}を準備できている">
               <span class="check-visual"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
               <span class="material-symbols-outlined supply-icon" aria-hidden="true">${item.icon}</span>
-              <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${typeof item.amount === "function" ? item.amount(householdSize) : item.amount}</span></span>
+              <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${typeof item.amount === "function" ? item.amount(householdSize) : item.amount}</span><span class="supply-state">未準備</span></span>
               ${item.special ? '<span class="priority-tag">優先</span>' : ""}
             </label>
           `).join("")}
@@ -304,6 +304,11 @@ function updateChecklistProgress() {
   const checkboxes = [...resultContent.querySelectorAll(".supply-item input")];
   const checkedCount = checkboxes.filter((input) => input.checked).length;
   const progressBar = resultContent.querySelector("#checklist-progress-bar");
+  checkboxes.forEach((input) => {
+    const state = input.closest(".supply-item").querySelector(".supply-state");
+    state.textContent = input.checked ? "準備済み" : "未準備";
+    state.classList.toggle("is-ready", input.checked);
+  });
   resultContent.querySelector("#checklist-progress-text").textContent = `${checkedCount} / ${checkboxes.length} 項目`;
   progressBar.setAttribute("aria-valuenow", String(checkedCount));
   progressBar.querySelector("span").style.width = `${checkboxes.length ? (checkedCount / checkboxes.length) * 100 : 0}%`;
