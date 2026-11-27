@@ -1,0 +1,321 @@
+// ============================================================
+// はじめて編集する方へ：
+// この上部の設定を書き換えると、質問・診断コメント・備蓄品を変更できます。
+// 表示や画面の動きは、下の処理部分がこの設定を読み込んで自動で作ります。
+// ============================================================
+
+// 質問文、アイコン、選択肢を上から順番に設定します。
+// 選択肢の value は診断結果や備蓄品の条件にも使うため、変更するときは
+// 下にある「診断タイプ」「備蓄アイテム一覧」の条件も同じ値にしてください。
+const QUESTIONS = [
+  {
+    icon: "backpack",
+    title: "自宅に備蓄リュックがあり、中身を把握していますか？",
+    options: [
+      { label: "はい", value: "yes", icon: "task_alt" },
+      { label: "いいえ", value: "no", icon: "inventory_2" },
+    ],
+  },
+  {
+    icon: "groups",
+    title: "家族は何人ですか？",
+    options: [
+      { label: "1〜2人", value: "1-2", icon: "person" },
+      { label: "3〜4人", value: "3-4", icon: "groups" },
+      { label: "5人以上", value: "5+", icon: "diversity_3" },
+    ],
+  },
+  {
+    icon: "pets",
+    title: "ペットはいますか？",
+    options: [
+      { label: "はい", value: "yes", icon: "pets" },
+      { label: "いいえ", value: "no", icon: "sentiment_satisfied" },
+    ],
+  },
+  {
+    icon: "apartment",
+    title: "住まいはマンション・集合住宅ですか？",
+    options: [
+      { label: "マンション・アパート", value: "apartment", icon: "apartment" },
+      { label: "一戸建て", value: "house", icon: "home" },
+    ],
+  },
+  {
+    icon: "health_and_safety",
+    title: "乳幼児・高齢者・持病のある家族はいますか？",
+    options: [
+      { label: "はい", value: "yes", icon: "medical_services" },
+      { label: "いいえ", value: "no", icon: "favorite" },
+    ],
+  },
+];
+
+// 条件は上から確認され、最初に一致したタイプが診断結果になります。
+// default は、上の条件に当てはまらなかった場合の結果です。
+const DIAGNOSIS_TYPES = [
+  {
+    when: (a) => a[4] === "yes",
+    type: "A",
+    name: "ケア重視タイプ",
+    message: "大切な人の体調を守るため、薬やケア用品をいつもの生活に合わせて準備しましょう。",
+    advice: "処方薬・お薬手帳・眼鏡など、本人に欠かせないものを家族で共有しましょう。",
+  },
+  {
+    when: (a) => a[2] === "yes" && a[3] === "apartment",
+    type: "B",
+    name: "ペットと在宅避難タイプ",
+    message: "ペットと一緒に過ごせるよう、在宅避難と人・ペット両方の備えを整えましょう。",
+    advice: "断水・停電やトイレの使用制限に備え、水と簡易トイレを多めに準備しましょう。",
+  },
+  {
+    when: (a) => a[3] === "apartment",
+    type: "C",
+    name: "集合住宅・在宅避難タイプ",
+    message: "災害後も自宅で過ごせるよう、水・食料に加えて簡易トイレをしっかり準備しましょう。",
+    advice: "エレベーター停止や断水に備え、各階への移動を減らせる備えを考えましょう。",
+  },
+  {
+    when: (a) => a[2] === "yes",
+    type: "D",
+    name: "ペットと一緒タイプ",
+    message: "避難先や移動方法を家族で話し合い、ペット用品も人の備蓄と一緒に点検しましょう。",
+    advice: "フード・水・トイレ用品に加え、写真やワクチン情報もまとめておくと安心です。",
+  },
+  {
+    when: (a) => a[0] === "yes",
+    type: "E",
+    name: "備えを見直すタイプ",
+    message: "備蓄リュックの中身を把握できていますね。家族に合わせて中身と期限を見直しましょう。",
+    advice: "季節や成長に合わせて必要品を更新し、家族みんなが置き場所を知っているか確認しましょう。",
+  },
+  {
+    type: "E",
+    name: "これから備えるタイプ",
+    message: "まずは水・食料・トイレから。できるものを一つずつそろえていきましょう。",
+    advice: "家族で備蓄場所を決め、普段使いしながら補充するローリングストックがおすすめです。",
+  },
+];
+
+// 家庭に合わせて表示する備蓄アイテムです。
+// condition を省略したアイテムはすべての家庭に表示されます。
+// special は優先アイテムとして目立つラベルを付けます。
+const SUPPLY_ITEMS = [
+  { name: "飲料水", icon: "water_drop", amount: "上の必要量を目安に", special: true },
+  { name: "非常食・保存食", icon: "lunch_dining", amount: "家族の好みに合うもの", special: true },
+  { name: "携帯トイレ・簡易トイレ", icon: "wc", amount: "1人1日5回を目安に", condition: (a) => a[3] === "apartment", special: true },
+  { name: "携帯トイレ", icon: "wc", amount: "家族人数×3日分", condition: (a) => a[3] !== "apartment", special: true },
+  { name: "常備薬・お薬手帳", icon: "medication", amount: "いつもの薬・処方内容", condition: (a) => a[4] === "yes", special: true },
+  { name: "ケア用品・使い慣れた日用品", icon: "health_and_safety", amount: "必要な方に合わせて", condition: (a) => a[4] === "yes" },
+  { name: "ペットフード・飲み水", icon: "pets", amount: "最低5〜7日分", condition: (a) => a[2] === "yes", special: true },
+  { name: "ペットシーツ・トイレ用品", icon: "crib", amount: "使い慣れたもの", condition: (a) => a[2] === "yes" },
+  { name: "懐中電灯・予備電池", icon: "flashlight_on", amount: "家族が使える場所に" },
+  { name: "モバイルバッテリー", icon: "battery_charging_full", amount: "充電・動作も確認" },
+  { name: "ウェットティッシュ・衛生用品", icon: "sanitizer", amount: "家族分を用意" },
+  { name: "現金・身分証のコピー", icon: "payments", amount: "小銭もあると安心" },
+];
+
+// 1〜2人は2人分、3〜4人は4人分、5人以上は最低5人分で計算します。
+// 5人以上のご家庭は、実際の人数に合わせてさらに増やしてください。
+const HOUSEHOLD_SIZE = { "1-2": 2, "3-4": 4, "5+": 5 };
+const DAYS_OF_SUPPLIES = 3;
+
+const welcomeScreen = document.querySelector("#welcome-screen");
+const questionScreen = document.querySelector("#question-screen");
+const resultScreen = document.querySelector("#result-screen");
+const questionContent = document.querySelector("#question-content");
+const resultContent = document.querySelector("#result-content");
+const answers = [];
+let currentQuestion = 0;
+
+function showScreen(activeScreen) {
+  [welcomeScreen, questionScreen, resultScreen].forEach((screen) => {
+    screen.hidden = screen !== activeScreen;
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderQuestion() {
+  const question = QUESTIONS[currentQuestion];
+  const progress = Math.round(((currentQuestion + 1) / QUESTIONS.length) * 100);
+  document.querySelector("#step-label").textContent = `QUESTION ${currentQuestion + 1} / ${QUESTIONS.length}`;
+  document.querySelector("#progress-percent").textContent = `${progress}%`;
+  document.querySelector("#progress-fill").style.width = `${progress}%`;
+  document.querySelector(".progress-track").setAttribute("aria-valuenow", String(currentQuestion + 1));
+  document.querySelector("#back-button").setAttribute("aria-label", currentQuestion === 0 ? "スタート画面に戻る" : "前の質問に戻る");
+
+  questionContent.innerHTML = `
+    <div class="question-icon"><span class="material-symbols-outlined" aria-hidden="true">${question.icon}</span></div>
+    <p class="question-kicker">QUESTION ${currentQuestion + 1}</p>
+    <h2 id="question-title">${question.title}</h2>
+    <div class="answer-options" role="group" aria-labelledby="question-title">
+      ${question.options.map((option) => `
+        <button class="answer-button" type="button" data-value="${option.value}">
+          <span class="material-symbols-outlined" aria-hidden="true">${option.icon}</span>
+          <span>${option.label}</span>
+          <span class="material-symbols-outlined answer-arrow" aria-hidden="true">arrow_forward</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+  questionContent.querySelectorAll(".answer-button").forEach((button) => {
+    button.addEventListener("click", () => selectAnswer(button.dataset.value));
+  });
+}
+
+function selectAnswer(value) {
+  answers[currentQuestion] = value;
+  if (currentQuestion < QUESTIONS.length - 1) {
+    currentQuestion += 1;
+    renderQuestion();
+    questionContent.classList.remove("question-transition");
+    requestAnimationFrame(() => questionContent.classList.add("question-transition"));
+    return;
+  }
+  renderResult();
+  showScreen(resultScreen);
+}
+
+function getDiagnosis() {
+  return DIAGNOSIS_TYPES.find((entry) => !entry.when || entry.when(answers));
+}
+
+function renderResult() {
+  const diagnosis = getDiagnosis();
+  const householdSize = HOUSEHOLD_SIZE[answers[1]];
+  const waterLitres = householdSize * 3 * DAYS_OF_SUPPLIES;
+  const mealCount = householdSize * 3 * DAYS_OF_SUPPLIES;
+  const displayedItems = SUPPLY_ITEMS.filter((item) => !item.condition || item.condition(answers));
+
+  resultContent.innerHTML = `
+    <div class="result-hero">
+      <div>
+        <div class="eyebrow"><span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>YOUR FAMILY'S PLAN</div>
+        <h1 id="result-title">${diagnosis.name}</h1>
+        <p>${diagnosis.message}</p>
+      </div>
+      <div class="type-badge" aria-label="${diagnosis.type}タイプ">
+        <strong>${diagnosis.type}</strong><span>TYPE</span>
+      </div>
+    </div>
+    <div class="result-grid">
+      <section class="result-card needs-card" aria-labelledby="needs-title">
+        <div class="card-heading">
+          <span class="card-heading-icon material-symbols-outlined" aria-hidden="true">priority_high</span>
+          <h2 id="needs-title">まずは3日分の目安</h2>
+        </div>
+        <p class="needs-intro">${answers[1] === "5+" ? "5人以上のご家庭の最低ラインです。実際の人数分を用意しましょう。" : `ご家族${householdSize}人分の最低限の目安です。`}</p>
+        <div class="need-quantity">
+          <span class="need-label">飲料水</span>
+          <strong class="need-value">${waterLitres} L</strong>
+          <div class="need-caption">${householdSize}人 × 1日3L × 3日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
+        </div>
+        <div class="need-quantity">
+          <span class="need-label">食料</span>
+          <strong class="need-value">${mealCount}食分以上</strong>
+          <div class="need-caption">${householdSize}人 × 1日3食 × 3日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
+        </div>
+      </section>
+      <section class="result-card" aria-labelledby="advice-title">
+        <div class="card-heading">
+          <span class="card-heading-icon material-symbols-outlined" aria-hidden="true">lightbulb</span>
+          <h2 id="advice-title">わが家へのアドバイス</h2>
+        </div>
+        <div class="advice-list">
+          <div class="advice-item"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span><span>${diagnosis.advice}</span></div>
+          ${answers[2] === "yes" ? '<div class="advice-item"><span class="material-symbols-outlined" aria-hidden="true">pets</span><span>避難先のペット受け入れ条件や移動方法も、事前に確認しましょう。</span></div>' : ""}
+          ${answers[3] === "apartment" ? '<div class="advice-item"><span class="material-symbols-outlined" aria-hidden="true">apartment</span><span>断水や排水管の被害に備えて、簡易トイレを優先して準備しましょう。</span></div>' : ""}
+          ${answers[4] === "yes" ? '<div class="advice-item"><span class="material-symbols-outlined" aria-hidden="true">medical_services</span><span>常備薬・ケア用品は切らさないよう、少し多めに備えましょう。</span></div>' : ""}
+        </div>
+      </section>
+      <section class="result-card checklist-card" aria-labelledby="checklist-title">
+        <div class="card-heading">
+          <span class="card-heading-icon material-symbols-outlined" aria-hidden="true">checklist</span>
+          <h2 id="checklist-title">わが家の必要備蓄チェックリスト</h2>
+        </div>
+        <p class="checklist-intro">準備できているものにチェック。タップすると完了です。</p>
+        <div class="checklist">
+          ${displayedItems.map((item, index) => `
+            <label class="supply-item">
+              <input type="checkbox" aria-label="${item.name}を準備できている">
+              <span class="check-visual"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
+              <span class="material-symbols-outlined supply-icon" aria-hidden="true">${item.icon}</span>
+              <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${item.amount}</span></span>
+              ${item.special ? '<span class="priority-tag">優先</span>' : ""}
+            </label>
+          `).join("")}
+        </div>
+      </section>
+    </div>
+    <div class="result-actions">
+      <button id="copy-button" class="button button-large" type="button"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>結果をコピーして家族に送る</button>
+      <button id="restart-button" class="button button-secondary" type="button"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>もう一度診断する</button>
+    </div>
+    <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+  `;
+  document.querySelector("#copy-button").addEventListener("click", copyResult);
+  document.querySelector("#restart-button").addEventListener("click", restart);
+}
+
+function getShareText() {
+  const diagnosis = getDiagnosis();
+  const householdSize = HOUSEHOLD_SIZE[answers[1]];
+  const checklist = [...resultContent.querySelectorAll(".supply-item")].map((item) => {
+    const name = item.querySelector(".supply-name").textContent;
+    return `${item.querySelector("input").checked ? "☑" : "☐"} ${name}`;
+  });
+  return [
+    "【わが家の備蓄点検】",
+    `${diagnosis.name}（${diagnosis.type}タイプ）`,
+    `水：${householdSize * 9}L以上（1人1日3L×3日分）`,
+    `食料：${householdSize * 9}食分以上（1人1日3食×3日分）`,
+    answers[1] === "5+" ? "※5人以上の最低目安。実際の人数分を用意しましょう。" : "",
+    "",
+    "備蓄チェックリスト：",
+    ...checklist,
+    "",
+    diagnosis.advice,
+  ].filter(Boolean).join("\n");
+}
+
+async function copyResult() {
+  const status = document.querySelector("#copy-status");
+  try {
+    await navigator.clipboard.writeText(getShareText());
+    status.textContent = "結果をコピーしました。家族に送って共有しましょう！";
+  } catch {
+    const textArea = document.createElement("textarea");
+    textArea.value = getShareText();
+    textArea.setAttribute("readonly", "");
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.select();
+    const copied = document.execCommand("copy");
+    textArea.remove();
+    status.textContent = copied ? "結果をコピーしました。家族に送って共有しましょう！" : "コピーできませんでした。もう一度お試しください。";
+  }
+}
+
+function restart() {
+  answers.length = 0;
+  currentQuestion = 0;
+  renderQuestion();
+  showScreen(welcomeScreen);
+}
+
+document.querySelector("#start-button").addEventListener("click", () => {
+  answers.length = 0;
+  currentQuestion = 0;
+  renderQuestion();
+  showScreen(questionScreen);
+});
+
+document.querySelector("#back-button").addEventListener("click", () => {
+  if (currentQuestion === 0) {
+    showScreen(welcomeScreen);
+    return;
+  }
+  currentQuestion -= 1;
+  renderQuestion();
+});
