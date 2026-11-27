@@ -19,11 +19,7 @@ const QUESTIONS = [
   {
     icon: "groups",
     title: "家族は何人ですか？",
-    options: [
-      { label: "1〜2人", value: "1-2", icon: "person" },
-      { label: "3〜4人", value: "3-4", icon: "groups" },
-      { label: "5人以上", value: "5+", icon: "diversity_3" },
-    ],
+    input: true,
   },
   {
     icon: "pets",
@@ -102,22 +98,25 @@ const DIAGNOSIS_TYPES = [
 // special は優先アイテムとして目立つラベルを付けます。
 const SUPPLY_ITEMS = [
   { name: "飲料水", icon: "water_drop", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}L（1人1日3L×${DAYS_OF_SUPPLIES}日分）`, special: true },
-  { name: "非常食・保存食", icon: "lunch_dining", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食（1人1日3食×${DAYS_OF_SUPPLIES}日分）`, special: true },
-  { name: "携帯トイレ・簡易トイレ", icon: "wc", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, condition: (a) => a[3] === "apartment", special: true },
-  { name: "携帯トイレ", icon: "wc", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, condition: (a) => a[3] !== "apartment", special: true },
+  { name: "主食（ご飯・パンなど）", icon: "rice_bowl", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食（1人1日3食×${DAYS_OF_SUPPLIES}日分）`, special: true },
+  { name: "おかず（缶詰・レトルトなど）", icon: "lunch_dining", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食分`, special: true },
+  { name: "携帯トイレ（凝固剤・処理袋）", icon: "wc", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, special: true },
   { name: "常備薬・お薬手帳", icon: "medication", amount: "必要な方の処方薬を最低7日分", condition: (a) => a[4] === "yes", special: true },
   { name: "ケア用品・使い慣れた日用品", icon: "health_and_safety", amount: "必要な方ごとに7日分", condition: (a) => a[4] === "yes" },
-  { name: "ペットフード・飲み水", icon: "pets", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
+  { name: "ペットフード", icon: "pets", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
+  { name: "ペット用飲み水", icon: "water_drop", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
   { name: "ペットシーツ・トイレ用品", icon: "crib", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes" },
-  { name: "懐中電灯・予備電池", icon: "flashlight_on", amount: "懐中電灯2個・予備電池1セット" },
+  { name: "懐中電灯", icon: "flashlight_on", amount: "2個（すぐ使える場所に分散）" },
+  { name: "予備電池", icon: "battery_charging_full", amount: "4本（懐中電灯の規格に合わせる）" },
   { name: "モバイルバッテリー", icon: "battery_charging_full", amount: (size) => `${size}台（1人1台）` },
-  { name: "ウェットティッシュ・衛生用品", icon: "sanitizer", amount: (size) => `${size}パック（1人1パック）` },
-  { name: "現金・身分証のコピー", icon: "payments", amount: (size) => `現金${size * 3000}円程度・身分証コピー${size}人分` },
+  { name: "充電ケーブル", icon: "cable", amount: (size) => `${size}本（1人1本）` },
+  { name: "ウェットティッシュ", icon: "sanitizer", amount: (size) => `${size}パック（1人1パック・30枚入りを目安）` },
+  { name: "マスク", icon: "masks", amount: (size) => `${size * DAYS_OF_SUPPLIES}枚（1人1日1枚×${DAYS_OF_SUPPLIES}日分）` },
+  { name: "歯ブラシ", icon: "health_and_safety", amount: (size) => `${size}本（1人1本）` },
+  { name: "現金", icon: "payments", amount: (size) => `${size * 3000}円程度（1人3,000円を目安）` },
+  { name: "身分証のコピー", icon: "badge", amount: (size) => `${size}人分` },
 ];
 
-// 1〜2人は2人分、3〜4人は4人分、5人以上は最低5人分で計算します。
-// 5人以上のご家庭は、実際の人数に合わせてさらに増やしてください。
-const HOUSEHOLD_SIZE = { "1-2": 2, "3-4": 4, "5+": 5 };
 const DAYS_OF_SUPPLIES = 3;
 
 const welcomeScreen = document.querySelector("#welcome-screen");
@@ -148,19 +147,51 @@ function renderQuestion() {
     <div class="question-icon"><span class="material-symbols-outlined" aria-hidden="true">${question.icon}</span></div>
     <p class="question-kicker">QUESTION ${currentQuestion + 1}</p>
     <h2 id="question-title">${question.title}</h2>
-    <div class="answer-options" role="group" aria-labelledby="question-title">
-      ${question.options.map((option) => `
-        <button class="answer-button" type="button" data-value="${option.value}">
-          <span class="material-symbols-outlined" aria-hidden="true">${option.icon}</span>
-          <span>${option.label}</span>
-          <span class="material-symbols-outlined answer-arrow" aria-hidden="true">arrow_forward</span>
-        </button>
-      `).join("")}
-    </div>
+    ${question.input ? `
+      <form id="household-form" class="household-form">
+        <label for="household-size">人数</label>
+        <div class="household-input-row">
+          <input id="household-size" name="household-size" type="number" min="1" step="1" inputmode="numeric" required value="${answers[currentQuestion] || ""}" aria-describedby="household-hint">
+          <span>人</span>
+          <button class="answer-button" type="submit">
+            <span>次へ</span>
+            <span class="material-symbols-outlined answer-arrow" aria-hidden="true">arrow_forward</span>
+          </button>
+        </div>
+        <p id="household-hint" class="household-hint">一緒に備えるご家族の人数を入力してください。</p>
+      </form>
+    ` : `
+      <div class="answer-options" role="group" aria-labelledby="question-title">
+        ${question.options.map((option) => `
+          <button class="answer-button" type="button" data-value="${option.value}">
+            <span class="material-symbols-outlined" aria-hidden="true">${option.icon}</span>
+            <span>${option.label}</span>
+            <span class="material-symbols-outlined answer-arrow" aria-hidden="true">arrow_forward</span>
+          </button>
+        `).join("")}
+      </div>
+    `}
   `;
-  questionContent.querySelectorAll(".answer-button").forEach((button) => {
-    button.addEventListener("click", () => selectAnswer(button.dataset.value));
-  });
+  if (question.input) {
+    const form = questionContent.querySelector("#household-form");
+    const input = form.querySelector("#household-size");
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!input.reportValidity()) return;
+      const size = input.valueAsNumber;
+      if (!Number.isSafeInteger(size)) {
+        input.setCustomValidity("1人以上の整数を入力してください。");
+        input.reportValidity();
+        return;
+      }
+      selectAnswer(size);
+    });
+    input.addEventListener("input", () => input.setCustomValidity(""));
+  } else {
+    questionContent.querySelectorAll(".answer-button").forEach((button) => {
+      button.addEventListener("click", () => selectAnswer(button.dataset.value));
+    });
+  }
 }
 
 function selectAnswer(value) {
@@ -182,7 +213,7 @@ function getDiagnosis() {
 
 function renderResult() {
   const diagnosis = getDiagnosis();
-  const householdSize = HOUSEHOLD_SIZE[answers[1]];
+  const householdSize = answers[1];
   const waterLitres = householdSize * 3 * DAYS_OF_SUPPLIES;
   const mealCount = householdSize * 3 * DAYS_OF_SUPPLIES;
   const displayedItems = SUPPLY_ITEMS.filter((item) => !item.condition || item.condition(answers));
@@ -204,16 +235,16 @@ function renderResult() {
           <span class="card-heading-icon material-symbols-outlined" aria-hidden="true">priority_high</span>
           <h2 id="needs-title">まずは3日分の目安</h2>
         </div>
-        <p class="needs-intro">${answers[1] === "5+" ? "5人以上のご家庭の最低ラインです。実際の人数分を用意しましょう。" : `ご家族${householdSize}人分の最低限の目安です。`}</p>
+        <p class="needs-intro">ご家族${householdSize}人分の最低限の目安です。</p>
         <div class="need-quantity">
           <span class="need-label">飲料水</span>
           <strong class="need-value">${waterLitres} L</strong>
-          <div class="need-caption">${householdSize}人 × 1日3L × ${DAYS_OF_SUPPLIES}日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
+          <div class="need-caption">${householdSize}人 × 1日3L × ${DAYS_OF_SUPPLIES}日分</div>
         </div>
         <div class="need-quantity">
           <span class="need-label">食料</span>
           <strong class="need-value">${mealCount}食分以上</strong>
-          <div class="need-caption">${householdSize}人 × 1日3食 × ${DAYS_OF_SUPPLIES}日分${answers[1] === "5+" ? "（5人分以上）" : ""}</div>
+          <div class="need-caption">${householdSize}人 × 1日3食 × ${DAYS_OF_SUPPLIES}日分</div>
         </div>
       </section>
       <section class="result-card" aria-labelledby="advice-title">
@@ -233,7 +264,7 @@ function renderResult() {
           <span class="card-heading-icon material-symbols-outlined" aria-hidden="true">checklist</span>
           <h2 id="checklist-title">わが家の必要備蓄チェックリスト</h2>
         </div>
-        <p class="checklist-intro">準備できているものにチェック。数量は人数選択に応じた目安です（5人以上は5人分で計算）。</p>
+        <p class="checklist-intro">準備できているものにチェック。数量は目安です。持病・季節・地域に合わせて調整してください。</p>
         <div class="checklist">
           ${displayedItems.map((item, index) => `
             <label class="supply-item">
@@ -259,7 +290,7 @@ function renderResult() {
 
 function getShareText(includeUrl = false) {
   const diagnosis = getDiagnosis();
-  const householdSize = HOUSEHOLD_SIZE[answers[1]];
+  const householdSize = answers[1];
   const checklist = [...resultContent.querySelectorAll(".supply-item")].map((item) => {
     const name = item.querySelector(".supply-name").textContent;
     const amount = item.querySelector(".supply-amount").textContent;
@@ -270,7 +301,6 @@ function getShareText(includeUrl = false) {
     `${diagnosis.name}（${diagnosis.type}タイプ）`,
     `水：${householdSize * 3 * DAYS_OF_SUPPLIES}L以上（1人1日3L×${DAYS_OF_SUPPLIES}日分）`,
     `食料：${householdSize * 3 * DAYS_OF_SUPPLIES}食分以上（1人1日3食×${DAYS_OF_SUPPLIES}日分）`,
-    answers[1] === "5+" ? "※5人以上の最低目安。実際の人数分を用意しましょう。" : "",
     "",
     "備蓄チェックリスト：",
     ...checklist,

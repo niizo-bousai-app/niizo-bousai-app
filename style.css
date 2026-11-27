@@ -269,6 +269,14 @@ h1, h2, h3, p { margin-top: 0; }
 .question-kicker { margin-bottom: 13px; color: var(--primary); font: 800 11px "Plus Jakarta Sans", sans-serif; letter-spacing: .12em; }
 .question-content h2 { max-width: 620px; margin-bottom: 31px; font-size: clamp(23px, 3vw, 31px); line-height: 1.6; letter-spacing: -.04em; font-weight: 800; }
 .answer-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 13px; }
+.household-form { max-width: 520px; }
+.household-form > label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.household-input-row { display: flex; align-items: center; gap: 11px; }
+.household-input-row input { width: 130px; min-height: 64px; padding: 0 16px; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: white; font: 700 20px "Plus Jakarta Sans", "Noto Sans JP", sans-serif; }
+.household-input-row input:focus { outline: 3px solid rgb(0 130 115 / 18%); border-color: var(--primary); }
+.household-input-row > span { color: var(--muted); font-weight: 700; }
+.household-input-row .answer-button { min-height: 64px; flex: 1; }
+.household-hint { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
 .answer-button {
   min-height: 74px;
   padding: 0 21px;
