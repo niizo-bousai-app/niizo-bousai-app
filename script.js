@@ -266,8 +266,9 @@ function renderResult() {
         </div>
         <p class="checklist-intro">準備できているものにチェック。数量は目安です。持病・季節・地域に合わせて調整してください。</p>
         <div class="checklist-progress">
-          <div class="checklist-progress-label"><span>準備の進み具合</span><strong id="checklist-progress-text">0 / ${displayedItems.length} 項目</strong></div>
+          <div class="checklist-progress-label"><span>わが家の備えランク</span><strong id="checklist-rank">START</strong><span id="checklist-progress-text">0 / ${displayedItems.length} 項目</span></div>
           <div id="checklist-progress-bar" class="checklist-progress-track" role="progressbar" aria-label="備蓄品の準備状況" aria-valuemin="0" aria-valuemax="${displayedItems.length}" aria-valuenow="0"><span></span></div>
+          <p id="checklist-cheer" class="checklist-cheer" aria-live="polite">まずは優先アイテムを1つチェック！</p>
         </div>
         <div class="checklist">
           ${displayedItems.map((item) => `
@@ -304,24 +305,41 @@ function updateChecklistProgress() {
   const checkboxes = [...resultContent.querySelectorAll(".supply-item input")];
   const checkedCount = checkboxes.filter((input) => input.checked).length;
   const progressBar = resultContent.querySelector("#checklist-progress-bar");
+  const rank = getReadinessRank(checkedCount, checkboxes.length);
   checkboxes.forEach((input) => {
     const state = input.closest(".supply-item").querySelector(".supply-state");
     state.textContent = input.checked ? "準備済み" : "未準備";
     state.classList.toggle("is-ready", input.checked);
   });
+  resultContent.querySelector("#checklist-rank").textContent = rank.grade;
+  resultContent.querySelector("#checklist-rank").className = `readiness-rank rank-${rank.grade.toLowerCase()}`;
+  resultContent.querySelector("#checklist-cheer").textContent = rank.message;
   resultContent.querySelector("#checklist-progress-text").textContent = `${checkedCount} / ${checkboxes.length} 項目`;
   progressBar.setAttribute("aria-valuenow", String(checkedCount));
   progressBar.querySelector("span").style.width = `${checkboxes.length ? (checkedCount / checkboxes.length) * 100 : 0}%`;
 }
 
+function getReadinessRank(checkedCount, totalCount) {
+  const ratio = totalCount ? checkedCount / totalCount : 0;
+  if (ratio === 1) return { grade: "S", message: "ミッション達成！わが家の備えはバッチリ！" };
+  if (ratio >= 0.75) return { grade: "A", message: "かなり心強い！あと少しでミッション達成。" };
+  if (ratio >= 0.5) return { grade: "B", message: "いい調子！必要な備えがそろってきました。" };
+  if (checkedCount > 0) return { grade: "C", message: "いいスタート！少しずつ備えていきましょう。" };
+  return { grade: "START", message: "まずは優先アイテムを1つチェック！" };
+}
+
 function getShareText(includeUrl = false) {
   const diagnosis = getDiagnosis();
   const householdSize = answers[1];
-  const checklist = getChecklistItems().map((item) =>
+  const items = getChecklistItems();
+  const checkedCount = items.filter((item) => item.checked).length;
+  const rank = getReadinessRank(checkedCount, items.length);
+  const checklist = items.map((item) =>
     `${item.checked ? "☑" : "☐"} ${item.name}：${item.amount}`);
   return [
     "【わが家の備蓄点検】",
     `${diagnosis.name}（${diagnosis.type}タイプ）`,
+    `備えランク：${rank.grade}（${checkedCount}/${items.length}項目）`,
     `水：${householdSize * 3 * DAYS_OF_SUPPLIES}L以上（1人1日3L×${DAYS_OF_SUPPLIES}日分）`,
     `食料：${householdSize * 3 * DAYS_OF_SUPPLIES}食分以上（1人1日3食×${DAYS_OF_SUPPLIES}日分）`,
     "",
@@ -415,12 +433,13 @@ async function createResultImage() {
   const householdSize = answers[1];
   const items = getChecklistItems();
   const checkedCount = items.filter((item) => item.checked).length;
+  const rank = getReadinessRank(checkedCount, items.length);
   const columns = 2;
   const rows = Math.ceil(items.length / columns);
   const width = 1080;
   const padding = 64;
   const rowHeight = 126;
-  const checklistTop = 700;
+  const checklistTop = 730;
   const adviceTop = checklistTop + rows * rowHeight + 30;
   const height = adviceTop + 300;
   const canvas = document.createElement("canvas");
@@ -501,7 +520,7 @@ async function createResultImage() {
   context.textAlign = "right";
   context.fillStyle = "#006a60";
   context.font = '700 18px "Noto Sans JP", sans-serif';
-  context.fillText(`${checkedCount} / ${items.length} 項目を準備済み`, width - padding, 638);
+  context.fillText(`${rank.grade} ランク  ・  ${checkedCount} / ${items.length} 項目`, width - padding, 638);
   context.textAlign = "left";
   roundedRect(context, padding, 674, width - padding * 2, 8, 4);
   context.fillStyle = "#dce7e2";
@@ -511,6 +530,9 @@ async function createResultImage() {
     context.fillStyle = "#168c78";
     context.fill();
   }
+  context.fillStyle = "#647773";
+  context.font = '500 16px "Noto Sans JP", sans-serif';
+  context.fillText(rank.message, padding, 692);
 
   const gap = 16;
   const cardWidth = (width - padding * 2 - gap) / 2;

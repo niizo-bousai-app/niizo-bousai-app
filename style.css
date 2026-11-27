@@ -346,10 +346,17 @@ h1, h2, h3, p { margin-top: 0; }
 .checklist-card { grid-column: 1 / -1; }
 .checklist-intro { margin: -5px 0 17px; color: var(--muted); font-size: 12px; }
 .checklist-progress { margin-bottom: 15px; }
-.checklist-progress-label { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font-size: 11px; }
-.checklist-progress-label strong { color: var(--primary); }
+.checklist-progress-label { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: 11px; }
+.checklist-progress-label .readiness-rank { min-width: 47px; padding: 3px 8px; border-radius: 999px; color: var(--primary); background: var(--primary-soft); text-align: center; font-size: 10px; }
+.checklist-progress-label > span:last-child { margin-left: auto; }
+.readiness-rank.rank-start { color: #647773; background: #e7efeb; }
+.readiness-rank.rank-c { color: #446958; background: #e1f1e7; }
+.readiness-rank.rank-b { color: #4a6790; background: #e6effc; }
+.readiness-rank.rank-a { color: #8b5a15; background: #fff0dc; }
+.readiness-rank.rank-s { color: #805c0a; background: #fff0b8; }
 .checklist-progress-track { height: 7px; overflow: hidden; border-radius: 99px; background: #eaf0ed; }
 .checklist-progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #008273, #50b49a); transition: width .3s ease; }
+.checklist-cheer { margin: 8px 0 0; color: var(--primary); font-size: 11px; font-weight: 700; }
 .checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .supply-item {
   min-height: 68px;
@@ -386,7 +393,6 @@ h1, h2, h3, p { margin-top: 0; }
 .priority-tag { margin-left: auto; padding: 4px 7px; border-radius: 999px; color: var(--amber); background: var(--amber-soft); font-size: 9px; font-weight: 800; white-space: nowrap; }
 .supply-item input:checked + .check-visual { color: white; border-color: var(--primary); background: var(--primary); transform: scale(1.08); }
 .supply-item input:checked ~ .supply-copy .supply-name { color: #87958f; text-decoration: line-through; text-decoration-thickness: 1px; }
-.supply-item input:checked ~ .supply-copy::after { content: "✓ 完了"; display: inline-block; margin-top: 4px; color: var(--primary); font-size: 9px; font-weight: 800; }
 .supply-item:has(input:checked) { border-color: #b6dfd1; background: #eff9f4; }
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; padding: 23px 0 8px; }
 .button-secondary { color: var(--primary); border: 1px solid #b8d7ce; background: white; box-shadow: none; }
