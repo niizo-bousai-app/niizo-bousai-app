@@ -357,6 +357,20 @@ h1, h2, h3, p { margin-top: 0; }
 .checklist-progress-track { height: 7px; overflow: hidden; border-radius: 99px; background: #eaf0ed; }
 .checklist-progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #008273, #50b49a); transition: width .3s ease; }
 .checklist-cheer { margin: 8px 0 0; color: var(--primary); font-size: 11px; font-weight: 700; }
+.next-mission { min-height: 66px; margin: 0 0 20px; padding: 13px 16px; border: 1px solid #cce7dc; border-radius: 17px; display: flex; align-items: center; gap: 12px; color: #365b50; background: linear-gradient(110deg, #edf9f2, #f8fbf8); font-size: 11px; line-height: 1.7; }
+.next-mission > .material-symbols-outlined { flex: 0 0 auto; color: var(--primary); font-size: 23px; }
+.next-mission strong { color: var(--primary); font-size: 12px; }
+.checklist-groups { display: grid; gap: 17px; }
+.checklist-group { padding: 16px; border: 1px solid var(--line); border-radius: 20px; background: #fbfdfb; transition: border-color .2s, background .2s; }
+.checklist-group.is-complete { border-color: #b6dfd1; background: #f2faf5; }
+.checklist-group-heading { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+.group-icon { width: 37px; height: 37px; border-radius: 13px; display: grid; place-items: center; color: var(--primary); background: var(--primary-soft); font-size: 21px; }
+.checklist-group.is-complete .group-icon { color: white; background: var(--primary); }
+.group-copy { min-width: 0; }
+.group-copy h3 { margin: 0; font-size: 13px; font-weight: 800; }
+.group-copy p { margin: 3px 0 0; color: var(--muted); font-size: 10px; }
+.group-count { margin-left: auto; padding: 5px 9px; border-radius: 999px; color: var(--muted); background: #edf2ef; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.checklist-group.is-complete .group-count { color: var(--primary); background: #dcefe5; }
 .checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .supply-item {
   min-height: 68px;

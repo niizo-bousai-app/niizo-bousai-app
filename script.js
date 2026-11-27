@@ -97,27 +97,33 @@ const DIAGNOSIS_TYPES = [
 // condition を省略したアイテムはすべての家庭に表示されます。
 // special は優先アイテムとして目立つラベルを付けます。
 const SUPPLY_ITEMS = [
-  { name: "飲料水", icon: "water_drop", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}L（1人1日3L×${DAYS_OF_SUPPLIES}日分）`, special: true },
-  { name: "主食（ご飯・パンなど）", icon: "rice_bowl", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食（1人1日3食×${DAYS_OF_SUPPLIES}日分）`, special: true },
-  { name: "おかず（缶詰・レトルトなど）", icon: "lunch_dining", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食分`, special: true },
-  { name: "携帯トイレ（凝固剤・処理袋）", icon: "wc", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, special: true },
-  { name: "常備薬・お薬手帳", icon: "medication", amount: "必要な方の処方薬を最低7日分", condition: (a) => a[4] === "yes", special: true },
-  { name: "ケア用品・使い慣れた日用品", icon: "health_and_safety", amount: "必要な方ごとに7日分", condition: (a) => a[4] === "yes" },
-  { name: "ペットフード", icon: "pets", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
-  { name: "ペット用飲み水", icon: "water_drop", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
-  { name: "ペットシーツ・トイレ用品", icon: "crib", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes" },
-  { name: "懐中電灯", icon: "flashlight_on", amount: "2個（すぐ使える場所に分散）" },
-  { name: "予備電池", icon: "battery_charging_full", amount: "4本（懐中電灯の規格に合わせる）" },
-  { name: "モバイルバッテリー", icon: "battery_charging_full", amount: (size) => `${size}台（1人1台）` },
-  { name: "充電ケーブル", icon: "cable", amount: (size) => `${size}本（1人1本）` },
-  { name: "ウェットティッシュ", icon: "sanitizer", amount: (size) => `${size}パック（1人1パック・30枚入りを目安）` },
-  { name: "マスク", icon: "masks", amount: (size) => `${size * DAYS_OF_SUPPLIES}枚（1人1日1枚×${DAYS_OF_SUPPLIES}日分）` },
-  { name: "歯ブラシ", icon: "health_and_safety", amount: (size) => `${size}本（1人1本）` },
-  { name: "現金", icon: "payments", amount: (size) => `${size * 3000}円程度（1人3,000円を目安）` },
-  { name: "身分証のコピー", icon: "badge", amount: (size) => `${size}人分` },
+  { name: "飲料水", icon: "water_drop", category: "basics", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}L（1人1日3L×${DAYS_OF_SUPPLIES}日分）`, special: true },
+  { name: "主食（ご飯・パンなど）", icon: "rice_bowl", category: "basics", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食（1人1日3食×${DAYS_OF_SUPPLIES}日分）`, special: true },
+  { name: "おかず（缶詰・レトルトなど）", icon: "lunch_dining", category: "basics", amount: (size) => `${size * 3 * DAYS_OF_SUPPLIES}食分`, special: true },
+  { name: "携帯トイレ（凝固剤・処理袋）", icon: "wc", category: "basics", amount: (size) => `${size * 5 * DAYS_OF_SUPPLIES}回分（1人1日5回×${DAYS_OF_SUPPLIES}日分）`, special: true },
+  { name: "常備薬・お薬手帳", icon: "medication", category: "family", amount: "必要な方の処方薬を最低7日分", condition: (a) => a[4] === "yes", special: true },
+  { name: "ケア用品・使い慣れた日用品", icon: "health_and_safety", category: "family", amount: "必要な方ごとに7日分", condition: (a) => a[4] === "yes" },
+  { name: "ペットフード", icon: "pets", category: "family", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
+  { name: "ペット用飲み水", icon: "water_drop", category: "family", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes", special: true },
+  { name: "ペットシーツ・トイレ用品", icon: "crib", category: "family", amount: "ペットごとに5〜7日分", condition: (a) => a[2] === "yes" },
+  { name: "懐中電灯", icon: "flashlight_on", category: "power", amount: "2個（すぐ使える場所に分散）" },
+  { name: "予備電池", icon: "battery_charging_full", category: "power", amount: "4本（懐中電灯の規格に合わせる）" },
+  { name: "モバイルバッテリー", icon: "battery_charging_full", category: "power", amount: (size) => `${size}台（1人1台）` },
+  { name: "充電ケーブル", icon: "cable", category: "power", amount: (size) => `${size}本（1人1本）` },
+  { name: "ウェットティッシュ", icon: "sanitizer", category: "daily", amount: (size) => `${size}パック（1人1パック・30枚入りを目安）` },
+  { name: "マスク", icon: "masks", category: "daily", amount: (size) => `${size * DAYS_OF_SUPPLIES}枚（1人1日1枚×${DAYS_OF_SUPPLIES}日分）` },
+  { name: "歯ブラシ", icon: "health_and_safety", category: "daily", amount: (size) => `${size}本（1人1本）` },
+  { name: "現金", icon: "payments", category: "daily", amount: (size) => `${size * 3000}円程度（1人3,000円を目安）` },
+  { name: "身分証のコピー", icon: "badge", category: "daily", amount: (size) => `${size}人分` },
 ];
 
 const DAYS_OF_SUPPLIES = 3;
+const CHECKLIST_CATEGORIES = [
+  { id: "basics", title: "まず命を守る", subtitle: "水・食料・トイレ", icon: "emergency" },
+  { id: "family", title: "わが家仕様", subtitle: "家族・ペットに必要なもの", icon: "family_restroom" },
+  { id: "power", title: "停電・連絡に備える", subtitle: "明かり・電源", icon: "offline_bolt" },
+  { id: "daily", title: "避難生活を支える", subtitle: "衛生・お金・身分証", icon: "health_and_safety" },
+];
 
 const welcomeScreen = document.querySelector("#welcome-screen");
 const questionScreen = document.querySelector("#question-screen");
@@ -217,6 +223,10 @@ function renderResult() {
   const waterLitres = householdSize * 3 * DAYS_OF_SUPPLIES;
   const mealCount = householdSize * 3 * DAYS_OF_SUPPLIES;
   const displayedItems = SUPPLY_ITEMS.filter((item) => !item.condition || item.condition(answers));
+  const checklistGroups = CHECKLIST_CATEGORIES.map((category) => ({
+    ...category,
+    items: displayedItems.filter((item) => item.category === category.id),
+  })).filter((category) => category.items.length > 0);
 
   resultContent.innerHTML = `
     <div class="result-hero">
@@ -270,15 +280,27 @@ function renderResult() {
           <div id="checklist-progress-bar" class="checklist-progress-track" role="progressbar" aria-label="備蓄品の準備状況" aria-valuemin="0" aria-valuemax="${displayedItems.length}" aria-valuenow="0"><span></span></div>
           <p id="checklist-cheer" class="checklist-cheer" aria-live="polite">まずは優先アイテムを1つチェック！</p>
         </div>
-        <div class="checklist">
-          ${displayedItems.map((item) => `
-            <label class="supply-item">
-              <input type="checkbox" aria-label="${item.name}を準備できている">
-              <span class="check-visual"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
-              <span class="material-symbols-outlined supply-icon" aria-hidden="true">${item.icon}</span>
-              <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${typeof item.amount === "function" ? item.amount(householdSize) : item.amount}</span><span class="supply-state">未準備</span></span>
-              ${item.special ? '<span class="priority-tag">優先</span>' : ""}
-            </label>
+        <p id="next-mission" class="next-mission" aria-live="polite"></p>
+        <div class="checklist-groups">
+          ${checklistGroups.map((category) => `
+            <section class="checklist-group" data-category="${category.id}" aria-labelledby="group-${category.id}">
+              <div class="checklist-group-heading">
+                <span class="group-icon material-symbols-outlined" aria-hidden="true">${category.icon}</span>
+                <div class="group-copy"><h3 id="group-${category.id}">${category.title}</h3><p>${category.subtitle}</p></div>
+                <span class="group-count">0 / ${category.items.length}</span>
+              </div>
+              <div class="checklist">
+                ${category.items.map((item) => `
+                  <label class="supply-item" data-category="${item.category}">
+                    <input type="checkbox" aria-label="${item.name}を準備できている">
+                    <span class="check-visual"><span class="material-symbols-outlined" aria-hidden="true">check</span></span>
+                    <span class="material-symbols-outlined supply-icon" aria-hidden="true">${item.icon}</span>
+                    <span class="supply-copy"><span class="supply-name">${item.name}</span><span class="supply-amount">${typeof item.amount === "function" ? item.amount(householdSize) : item.amount}</span><span class="supply-state">未準備</span></span>
+                    ${item.special ? '<span class="priority-tag">優先</span>' : ""}
+                  </label>
+                `).join("")}
+              </div>
+            </section>
           `).join("")}
         </div>
       </section>
@@ -317,6 +339,24 @@ function updateChecklistProgress() {
   resultContent.querySelector("#checklist-progress-text").textContent = `${checkedCount} / ${checkboxes.length} 項目`;
   progressBar.setAttribute("aria-valuenow", String(checkedCount));
   progressBar.querySelector("span").style.width = `${checkboxes.length ? (checkedCount / checkboxes.length) * 100 : 0}%`;
+
+  resultContent.querySelectorAll(".checklist-group").forEach((group) => {
+    const groupCheckboxes = [...group.querySelectorAll(".supply-item input")];
+    const groupChecked = groupCheckboxes.filter((input) => input.checked).length;
+    group.querySelector(".group-count").textContent = `${groupChecked} / ${groupCheckboxes.length}`;
+    group.classList.toggle("is-complete", groupChecked === groupCheckboxes.length);
+  });
+
+  const nextItem = checkboxes.find((input) => !input.checked && input.closest(".supply-item").querySelector(".priority-tag"))
+    || checkboxes.find((input) => !input.checked);
+  const nextMission = resultContent.querySelector("#next-mission");
+  if (nextItem) {
+    const item = nextItem.closest(".supply-item");
+    const group = item.closest(".checklist-group");
+    nextMission.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">flag</span><span><strong>次のミッション</strong><br>${group.querySelector("h3").textContent}：${item.querySelector(".supply-name").textContent}（${item.querySelector(".supply-amount").textContent}）</span>`;
+  } else {
+    nextMission.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">celebration</span><span><strong>全ミッションクリア！</strong><br>わが家の備え、よくできました。</span>';
+  }
 }
 
 function getReadinessRank(checkedCount, totalCount) {
